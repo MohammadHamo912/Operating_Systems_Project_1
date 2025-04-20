@@ -97,7 +97,7 @@ public class SudokuValidator {
         for(int i = row;i < row + m;i++){
             for(int j = col;j < col+m;j++){
                 if(seen[sudokuBoard[i][j] -1]) return false;
-                seen[sudokuBoard[i][j]] = true;
+                seen[sudokuBoard[i][j] -1] = true;
             }
         }
         return true;
