@@ -13,13 +13,45 @@ public class SudokuValidator {
 
     // checkValidCol
     static class ColumnValidator implements Runnable{
-
         public ColumnValidator(){
         }
         public void run(){
-            // call the checkValidCol
         }
     }
+
+    static class ColumnValidator27Threads implements Runnable{
+        int col;
+
+        public ColumnValidator27Threads(int col){
+            this.col = col;
+
+        }
+        public void run(){
+            resultsForTheCurrentThreadsApproach.add(checkValidCol(col));
+        }
+    }
+    static class RowValidator27Threads implements Runnable{
+        int row;
+        public RowValidator27Threads(int row){
+            this.row = row;
+        }
+        public void run(){
+            resultsForTheCurrentThreadsApproach.add(checkValidRow(sudokuBoard[row]));
+        }
+    }
+
+    //Grid validator will be in-common for the 11Thread approach and the 27 thread approach
+    static class GridValidator implements Runnable{
+        int row,col;
+        public GridValidator(int row,int col){
+            this.row = row;
+            this.col =col;
+        }
+        public void run(){
+            resultsForTheCurrentThreadsApproach.add(checkValidGrid(row,col));
+        }
+    }
+
     public static boolean checkValidCol(int colNumber){
         boolean [] seen = new boolean[n];
         for(int i = 0;i < n;i++){
@@ -42,7 +74,7 @@ public class SudokuValidator {
     }
 
     //checkValidGrid
-    public static boolean checkValidGrid(int col, int row){
+    public static boolean checkValidGrid(int row, int col){
         int m = (int) Math.sqrt(n); // grid length
         boolean seen[] = new boolean[n];
         for(int i = row;i < row + m;i++){
@@ -73,6 +105,7 @@ public class SudokuValidator {
     public static void checkValidSudokuMultithreadingApproachUsing11Threads(){
         resultsForTheCurrentThreadsApproach.clear();
 
+
         boolean flag = true;
         for(boolean iterator : resultsForTheCurrentThreadsApproach){
             flag = flag && iterator;
@@ -84,20 +117,53 @@ public class SudokuValidator {
     public static void checkValidSudokuMultithreadingApproachUsing27Threads(){
         resultsForTheCurrentThreadsApproach.clear();
         long startTime = System.nanoTime();
-        boolean validThread[] = new boolean[27];
 
-        //threads //
-        // naive approach
+        Thread[] rowThreads = new Thread[9];
+        Thread[] colThreads = new Thread[9];
+        Thread[] gridThreads = new Thread[9];
+        int j = 0;
+        int m = (int) Math.sqrt(n);
+        for(int i = 0;i < n;i++){
+            rowThreads[i] = new Thread(new ColumnValidator27Threads(i));
+            rowThreads[i].start();
+            colThreads[i] = new Thread(new RowValidator27Threads(i));
+            colThreads[i].start();
+            if(i%m ==0){
+                for(int col = 0;col < n;col +=m){
+                    gridThreads[j] = new Thread(new GridValidator(i,col));
+                    gridThreads[j++].start();
+                }
+            }
+        }
 
+        for(int i =0;i < n;i++){
+            try {
+                rowThreads[i].join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            try {
+                colThreads[i].join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            try {
+                gridThreads[i].join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
         long endTime = System.nanoTime();
         boolean flag = true;
-        for(boolean iterator : validThread){
+        for(boolean iterator : resultsForTheCurrentThreadsApproach){
             flag = flag && iterator;
         }
         allApproachesValidation[2] = flag;
         long totalTime = startTime-endTime;
         System.out.println("Total Time: "+totalTime);
-        System.out.println("Is Valid");
+        System.out.println("Is Valid: "+ flag);
     }
 
 
