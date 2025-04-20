@@ -32,7 +32,7 @@ public class Main {
         // multithreadingV2 9x9
         suduko9x9.checkValidSudokuMultithreadingApproachUsing27Threads();
 
-
+/*
         // 25x25 grid:
         SudokuValidator suduko25x25 = new SudokuValidator(sudokoBoard25x25Grid);
         // naiveApproach 25x25
@@ -41,7 +41,7 @@ public class Main {
         suduko25x25.checkValidSudokuMultithreadingApproachUsing27Threads();
         // multithreadingV2 25x25
         suduko25x25.checkValidSudokuMultithreadingApproachUsing27Threads();
-//
+//*/
 
     }
 }

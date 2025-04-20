@@ -6,16 +6,33 @@ public class SudokuValidator {
     private static ArrayList<Boolean> resultsForTheCurrentThreadsApproach;
     public static boolean[] allApproachesValidation = new boolean[3];
     public SudokuValidator(int[][] sudokuBoard) {
-        this.sudokuBoard = sudokuBoard;
+        SudokuValidator.sudokuBoard = sudokuBoard;
         n= sudokuBoard.length;
         resultsForTheCurrentThreadsApproach = new ArrayList<>();
     }
 
     // checkValidCol
-    static class ColumnValidator implements Runnable{
-        public ColumnValidator(){
+    static class ColumnValidator11Threads implements Runnable{
+        public ColumnValidator11Threads(){
         }
         public void run(){
+            boolean result = true;
+            for(int i=0; i<n; i++){
+                result =result && checkValidCol(i);
+            }
+            resultsForTheCurrentThreadsApproach.add(result);
+        }
+    }
+
+    static class RowValidator11Threads implements Runnable{
+        public RowValidator11Threads(){
+        }
+        public void run(){
+            boolean result = true;
+            for(int i=0; i<n; i++){
+                result =result && checkValidRow(sudokuBoard[i]);
+            }
+            resultsForTheCurrentThreadsApproach.add(result);
         }
     }
 
@@ -55,7 +72,7 @@ public class SudokuValidator {
     public static boolean checkValidCol(int colNumber){
         boolean [] seen = new boolean[n];
         for(int i = 0;i < n;i++){
-            if(seen[sudokuBoard[i][colNumber] - 1] == true) return false;
+            if(seen[sudokuBoard[i][colNumber] - 1]) return false;
             seen[sudokuBoard[i][colNumber] - 1] = true;
         }
         return true;
@@ -66,7 +83,7 @@ public class SudokuValidator {
     public static boolean checkValidRow(int[] sudokuBoardRow){
         boolean [] seen = new boolean[n];
         for(int i = 0;i < n;i++){
-            if(seen[sudokuBoardRow[i] -1]  == true) return false;
+            if(seen[sudokuBoardRow[i] -1]) return false;
             seen[sudokuBoardRow[i] - 1] = true;
         }
         return true;
@@ -74,12 +91,12 @@ public class SudokuValidator {
     }
 
     //checkValidGrid
-    public static boolean checkValidGrid(int row, int col){
+    public static boolean checkValidGrid(int col, int row){
         int m = (int) Math.sqrt(n); // grid length
-        boolean seen[] = new boolean[n];
+        boolean[] seen = new boolean[n];
         for(int i = row;i < row + m;i++){
             for(int j = col;j < col+m;j++){
-                if(seen[sudokuBoard[i][j] -1] == true) return false;
+                if(seen[sudokuBoard[i][j] -1]) return false;
                 seen[sudokuBoard[i][j]] = true;
             }
         }
@@ -87,30 +104,85 @@ public class SudokuValidator {
     }
 
     public static void checkValidSudokuNaiveApproach(){
-        // naive approach
-
-        boolean result = false;
-        /*
-            col loops
-            //checkValidCol
-
-         */
-        // loop valid row
-        // loop valid grid
-
-
-        allApproachesValidation[0] = result;
-    }
-
-    public static void checkValidSudokuMultithreadingApproachUsing11Threads(){
         resultsForTheCurrentThreadsApproach.clear();
+        // naive approach
+        long startTime = System.nanoTime();
+        int m = (int) Math.sqrt(n);
+        for(int i =0;i < n;i++){
+            resultsForTheCurrentThreadsApproach.add(checkValidRow(sudokuBoard[i]));
+        }
 
+        for (int i =0;i<n;i++){
+            resultsForTheCurrentThreadsApproach.add(checkValidCol(i));
+        }
+        for(int i =0;i <n;i+=m){
+            for(int j =0;j < n;j+=m){
+                resultsForTheCurrentThreadsApproach.add(checkValidGrid(i,j));
+            }
+        }
+
+        long endTime = System.nanoTime();
 
         boolean flag = true;
         for(boolean iterator : resultsForTheCurrentThreadsApproach){
             flag = flag && iterator;
         }
+        allApproachesValidation[0] = flag;
+        long totalTime = endTime - startTime;
+        System.out.println("Total Time: "+totalTime);
+        System.out.println("Is Valid: "+flag);
+
+
+     }
+
+
+    public static void checkValidSudokuMultithreadingApproachUsing11Threads(){
+        resultsForTheCurrentThreadsApproach.clear();
+
+
+        long startTime = System.nanoTime();
+        Thread rowThread = new Thread(new RowValidator11Threads());
+        Thread columnThread = new Thread(new ColumnValidator11Threads());
+        Thread[] gridThreads = new Thread[n];
+        rowThread.start();
+        int m =(int) Math.sqrt(n);
+        columnThread.start();
+        int index=0;
+        for (int row = 0; row < n; row += m) {
+            for (int col = 0; col < n; col += m) {
+                gridThreads[index] = new Thread(new GridValidator(row, col));
+                gridThreads[index].start();
+                index++;
+            }
+        }
+
+        for(int i=0; i<index; i++){
+            try {
+                gridThreads[i].join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        try {
+            rowThread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            columnThread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        long endTime = System.nanoTime();
+        boolean flag = true;
+        for(boolean iterator : resultsForTheCurrentThreadsApproach){
+            flag = flag && iterator;
+        }
         allApproachesValidation[1] = flag;
+        long totalTime = endTime - startTime;
+        System.out.println("Total Time: "+totalTime);
+        System.out.println("Is Valid: "+flag);
     }
 
 
@@ -146,9 +218,7 @@ public class SudokuValidator {
                 colThreads[i].join();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
-            }
-
-            try {
+            }try {
                 gridThreads[i].join();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -161,7 +231,7 @@ public class SudokuValidator {
             flag = flag && iterator;
         }
         allApproachesValidation[2] = flag;
-        long totalTime = startTime-endTime;
+        long totalTime = endTime-startTime;
         System.out.println("Total Time: "+totalTime);
         System.out.println("Is Valid: "+ flag);
     }
